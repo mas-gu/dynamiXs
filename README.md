@@ -70,6 +70,76 @@ L6,156.7,123.4,89.2,61.5,42.3,28.9,17.1,10.2
   - Comparison plots (original data + differences)
   - Statistical summaries (mean, std, range)
 
+## Mathematical Framework
+
+### Model-Free Analysis Equations
+
+The dynamiXs package implements dual-field model-free analysis using the Lipari-Szabo approach with chemical exchange (Rex) fitting. The core equations are:
+
+#### NMR Relaxation Rate Equations
+**Longitudinal relaxation (R₁):**
+```
+R₁ = A × (3J(ωN) + 6J(ωH + ωN) + J(|ωH - ωN|)) + C × J(ωN)
+```
+
+**Transverse relaxation (R₂):**
+```
+R₂ = 0.5 × A × (4J(0) + 3J(ωN) + 6J(ωH + ωN) + 6J(0.87ωH) + J(|ωH - ωN|))
+   + C × (2J(0)/3 + 0.5J(ωN)) + Rex
+```
+
+**Heteronuclear NOE:**
+```
+NOE = 1 + (A × γH/γN × T₁ × (6J(ωH + ωN) - J(|ωH - ωN|)))
+```
+
+#### Physical Constants
+```
+A = d² = (1/4) × [μ₀ℏγNγH/(4πr³NH)]²    (Dipolar coupling constant)
+C = c² = (1/3) × (ωN × Δσ)²              (CSA constant)
+```
+
+**Key Parameters:**
+- `γH = 2.675 × 10⁸ rad s⁻¹ T⁻¹` (¹H gyromagnetic ratio)
+- `γN = -2.713 × 10⁷ rad s⁻¹ T⁻¹` (¹⁵N gyromagnetic ratio)
+- `rNH = 1.015 × 10⁻¹⁰ m` (N-H bond length)
+- `Δσ = -160 ppm` (¹⁵N CSA)
+- `μ₀ = 1.257 × 10⁻⁶ H/m` (Permeability of vacuum)
+- `ℏ = 1.055 × 10⁻³⁴ J·s` (Reduced Planck constant)
+
+#### Model-Free Spectral Density Functions
+**Lipari-Szabo Model:**
+```
+J(ω) = (2/5) × [S² × τc/(1 + (ωτc)²) + (1-S²) × τeff/(1 + (ωτeff)²)]
+```
+
+Where:
+- `τeff = 1/(1/τc + 1/τe)` (Effective correlation time)
+- `S²` = Generalized order parameter (0-1)
+- `τc` = Overall tumbling correlation time
+- `τe` = Internal motion correlation time
+- `Rex` = Chemical exchange contribution to R₂
+
+#### Enhanced J(0.87ωH) Implementation
+For improved accuracy, the analysis uses `J(0.87ωH)` instead of `J(ωH)` to better account for cross-correlation effects and dipolar-CSA interference.
+
+#### Dual-Field Analysis
+The dual-field approach provides better parameter separation by using data from two magnetic fields:
+- **Field 1** (e.g., 600 MHz): Lower chemical exchange sensitivity
+- **Field 2** (e.g., 700-800 MHz): Higher chemical exchange sensitivity
+
+**Expected Rex scaling:** `Rex₂/Rex₁ ≈ (B₂/B₁)²`
+
+#### Reduced Spectral Density Mapping
+Alternative analysis using direct calculation:
+```
+J(0) = (3/[2(3d² + c²)]) × (-0.5R₁ + R₂ - (3/5)σNOE)
+J(ωN) = (1/(3d² + c²)) × (R₁ - (7/5)σNOE)
+J(0.87ωH) = σNOE / (5d²)
+```
+
+Where: `σNOE = (NOE - 1) × R₁ × (γN/γH)`
+
 ## Technical Details
 
 ### Dependencies
