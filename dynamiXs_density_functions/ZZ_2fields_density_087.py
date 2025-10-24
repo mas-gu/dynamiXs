@@ -887,18 +887,47 @@ class DualFieldSpectralDensityAnalysis:
         # Row 4: Field-dependence analysis
         # Rex field dependence
         axes[3,0].scatter(good_data['Rex_field1'], good_data['Rex_field2'], alpha=0.6)
-        axes[3,0].plot([0, good_data[['Rex_field1', 'Rex_field2']].max().max()], 
+        axes[3,0].plot([0, good_data[['Rex_field1', 'Rex_field2']].max().max()],
                                   [0, good_data[['Rex_field1', 'Rex_field2']].max().max()], 'k--', alpha=0.5)
         axes[3,0].set_xlabel(f'Rex {self.field1_freq} MHz (s⁻¹)')
         axes[3,0].set_ylabel(f'Rex {self.field2_freq} MHz (s⁻¹)')
         axes[3,0].set_title('Rex Field Dependence (J(0.87ωH))')
-        
+
         # Rex ratio vs field ratio (should be quadratic for chemical exchange)
+        # Option 3: Filter by minimum threshold + outlier removal
         field_ratio = (self.field2_freq / self.field1_freq)**2
-        rex_ratio = good_data['Rex_field2'] / (good_data['Rex_field1'] + 0.01)  # Avoid division by zero
-        axes[3,1].scatter(np.full(len(good_data), field_ratio), rex_ratio, alpha=0.6)
-        axes[3,1].axhline(y=field_ratio, color='red', linestyle='--', 
-                                         label=f'Expected ratio = {field_ratio:.1f}')
+        min_rex = 0.5  # s⁻¹, minimum Rex threshold for meaningful scaling analysis
+
+        # Filter by minimum threshold at both fields
+        mask = (good_data['Rex_field1'] > min_rex) & (good_data['Rex_field2'] > min_rex)
+        filtered_rex_data = good_data[mask].copy()
+
+        if len(filtered_rex_data) > 0:
+            # Calculate ratios without offset (not needed after filtering)
+            rex_ratio = filtered_rex_data['Rex_field2'] / filtered_rex_data['Rex_field1']
+
+            # Remove outliers (ratio > 3× expected or < 0.3× expected)
+            ratio_mask = (rex_ratio < 3 * field_ratio) & (rex_ratio > 0.3 * field_ratio)
+            final_filtered_data = filtered_rex_data[ratio_mask]
+            final_rex_ratio = rex_ratio[ratio_mask]
+
+            # Plot filtered data
+            axes[3,1].scatter(np.full(len(final_filtered_data), field_ratio), final_rex_ratio, alpha=0.6)
+            axes[3,1].axhline(y=field_ratio, color='red', linestyle='--',
+                             label=f'Expected ratio = {field_ratio:.2f}')
+
+            # Add info about filtering
+            n_total = len(good_data)
+            n_filtered = len(final_filtered_data)
+            axes[3,1].text(0.05, 0.95, f'n = {n_filtered}/{n_total}\n(Rex > {min_rex} s⁻¹)',
+                          transform=axes[3,1].transAxes, verticalalignment='top',
+                          bbox=dict(boxstyle='round', facecolor='white', alpha=0.8), fontsize=9)
+        else:
+            # No data passed filtering
+            axes[3,1].text(0.5, 0.5, f'No residues with Rex > {min_rex} s⁻¹\nat both fields',
+                          transform=axes[3,1].transAxes, ha='center', va='center',
+                          bbox=dict(boxstyle='round', facecolor='yellow', alpha=0.5))
+
         axes[3,1].set_xlabel('Field Ratio² (B₂²/B₁²)')
         axes[3,1].set_ylabel('Rex Ratio (Rex₂/Rex₁)')
         axes[3,1].set_title('Rex Field Scaling (J(0.87ωH))')
