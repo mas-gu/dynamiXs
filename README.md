@@ -133,9 +133,8 @@ The dual-field approach provides better parameter separation by using data from 
 #### Reduced Spectral Density Mapping
 Alternative analysis using direct calculation:
 ```
-J(0) = (3/[2(3d² + c²)]) × (-0.5R₁ + R₂ - (3/5)σNOE)
-J(ωN) = (1/(3d² + c²)) × (R₁ - (7/5)σNOE)
-J(0.87ωH) = σNOE / (5d²)
+need to be updated
+
 ```
 
 Where: `σNOE = (NOE - 1) × R₁ × (γN/γH)`
