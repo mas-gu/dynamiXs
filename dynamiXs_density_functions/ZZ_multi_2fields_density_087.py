@@ -99,10 +99,15 @@ class DualFieldSpectralDensityAnalysis:
         return omegaH * GAMMA_N / GAMMA_H
     
     def _calculate_d_factor(self):
-        """Calculate dipolar coupling constant (field-independent)"""
+        """
+        Calculate dipolar coupling constant (d²) - field-independent
+
+        Returns d² as defined in Farrow et al. J. Biomol. NMR, 6 (1995) 153-162
+        d² = [μ₀ħγNγH/(8π²r³NH)]²
+        """
         mu0_h_bar = REDUCED_PERM_VACUUM * REDUCED_PLANK
         d_squared = (mu0_h_bar * GAMMA_N * GAMMA_H / (4 * PI * self.rNH**3))**2
-        return d_squared / 4.0
+        return d_squared  # Returns d², not d²/4 (Farrow-exact notation)
     
     def _calculate_c_factor(self, omegaN):
         """Calculate CSA constant (field-dependent)"""
@@ -135,16 +140,19 @@ class DualFieldSpectralDensityAnalysis:
             c_factor = self.field2_c_factor
             
         sigma_noe = self.calculate_sigma_NOE(noe, r1)
-        
-        # Calculate spectral densities
-        j0 = (3.0 / (2.0 * (3.0 * d_factor + c_factor))) * (
+
+        # Calculate spectral densities using Farrow et al. (1995) equations
+        # Farrow Eq. 7
+        j0 = (3.0 / (2.0 * (3.0 * d_factor / 4.0 + c_factor))) * (
             -0.5 * r1 + r2 - (3.0/5.0) * sigma_noe
         )
-        
-        jwn = (1.0 / (3.0 * d_factor + c_factor)) * (r1 - (7.0/5.0) * sigma_noe)
-        
-        jwh = sigma_noe / (5.0 * d_factor)
-        
+
+        # Farrow Eq. 6
+        jwn = (1.0 / (3.0 * d_factor / 4.0 + c_factor)) * (r1 - (7.0/5.0) * sigma_noe)
+
+        # Farrow Eq. 5: J(0.87ωH)
+        jwh = 4.0 * sigma_noe / (5.0 * d_factor)
+
         return {'J0': j0, 'JwN': jwn, 'JwH_087': jwh}
     
     def calculate_isotropic_spectral_density(self, s2, tc, te, omega):
@@ -519,7 +527,7 @@ class DualFieldSpectralDensityAnalysis:
         sigma_noe_f1_err = np.sqrt((dsigma_dr1_f1 * r1_f1_err)**2 + (dsigma_dnoe_f1 * noe_f1_err)**2)
         
         # J(0) field 1
-        factor_j0_f1 = 3.0 / (2.0 * (3.0 * d1 + c1))
+        factor_j0_f1 = 3.0 / (2.0 * (3.0 * d1 / 4.0 + c1))
         dj0_dr1_f1 = factor_j0_f1 * (-0.5 - (3.0/5.0) * dsigma_dr1_f1)
         dj0_dr2_f1 = factor_j0_f1
         dj0_dnoe_f1 = factor_j0_f1 * (-(3.0/5.0) * dsigma_dnoe_f1)
@@ -534,32 +542,32 @@ class DualFieldSpectralDensityAnalysis:
         dsigma_dnoe_f2 = r1_f2 * gamma_ratio
         sigma_noe_f2_err = np.sqrt((dsigma_dr1_f2 * r1_f2_err)**2 + (dsigma_dnoe_f2 * noe_f2_err)**2)
         
-        factor_j0_f2 = 3.0 / (2.0 * (3.0 * d2 + c2))
+        factor_j0_f2 = 3.0 / (2.0 * (3.0 * d2 / 4.0 + c2))
         dj0_dr1_f2 = factor_j0_f2 * (-0.5 - (3.0/5.0) * dsigma_dr1_f2)
         dj0_dr2_f2 = factor_j0_f2
         dj0_dnoe_f2 = factor_j0_f2 * (-(3.0/5.0) * dsigma_dnoe_f2)
         j0_f2_err = np.sqrt((dj0_dr1_f2 * r1_f2_err)**2 + (dj0_dr2_f2 * r2_f2_err)**2 + (dj0_dnoe_f2 * noe_f2_err)**2)
     
         # J(ωN) error for field 1
-        factor_jwn_f1 = 1.0 / (3.0 * d1 + c1)
+        factor_jwn_f1 = 1.0 / (3.0 * d1 / 4.0 + c1)
         djwn_dr1_f1 = factor_jwn_f1 * (1.0 - (7.0/5.0) * (noe_f1 - 1.0) * gamma_ratio)
         djwn_dnoe_f1 = factor_jwn_f1 * (-(7.0/5.0) * r1_f1 * gamma_ratio)
         jwn_f1_err = np.sqrt((djwn_dr1_f1 * r1_f1_err)**2 + (djwn_dnoe_f1 * noe_f1_err)**2)
 
         # J(0.87ωH) error for field 1  
-        factor_jwh_f1 = 1.0 / (5.0 * d1)
+        factor_jwh_f1 = 4.0 / (5.0 * d1)
         djwh_dr1_f1 = factor_jwh_f1 * (noe_f1 - 1.0) * gamma_ratio
         djwh_dnoe_f1 = factor_jwh_f1 * r1_f1 * gamma_ratio
         jwh_f1_err = np.sqrt((djwh_dr1_f1 * r1_f1_err)**2 + (djwh_dnoe_f1 * noe_f1_err)**2) 
         
         # J(ωN) error for field 2
-        factor_jwn_f2 = 1.0 / (3.0 * d2 + c2)
+        factor_jwn_f2 = 1.0 / (3.0 * d2 / 4.0 + c2)
         djwn_dr1_f2 = factor_jwn_f2 * (1.0 - (7.0/5.0) * (noe_f2 - 1.0) * gamma_ratio)
         djwn_dnoe_f2 = factor_jwn_f2 * (-(7.0/5.0) * r1_f2 * gamma_ratio)
         jwn_f2_err = np.sqrt((djwn_dr1_f2 * r1_f2_err)**2 + (djwn_dnoe_f2 * noe_f2_err)**2)
 
         # J(0.87ωH) error for field 2  
-        factor_jwh_f2 = 1.0 / (5.0 * d2)
+        factor_jwh_f2 = 4.0 / (5.0 * d2)
         djwh_dr1_f2 = factor_jwh_f2 * (noe_f2 - 1.0) * gamma_ratio
         djwh_dnoe_f2 = factor_jwh_f2 * r1_f2 * gamma_ratio
         jwh_f2_err = np.sqrt((djwh_dr1_f2 * r1_f2_err)**2 + (djwh_dnoe_f2 * noe_f2_err)**2)

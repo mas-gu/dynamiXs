@@ -76,10 +76,15 @@ class ReducedSpectralDensityAnalysis:
         return self.omegaH * GAMMA_N / GAMMA_H
     
     def _calculate_d_factor(self):
-        """Calculate dipolar coupling constant"""
+        """
+        Calculate dipolar coupling constant (d²)
+
+        Returns d² as defined in Farrow et al. J. Biomol. NMR, 6 (1995) 153-162
+        d² = [μ₀ħγNγH/(8π²r³NH)]²
+        """
         mu0_h_bar = REDUCED_PERM_VACUUM * REDUCED_PLANK
         d_squared = (mu0_h_bar * GAMMA_N * GAMMA_H / (4 * PI * self.rNH**3))**2
-        return d_squared / 4.0
+        return d_squared  # Returns d², not d²/4 (Farrow-exact notation)
     
     def _calculate_c_factor(self):
         """Calculate CSA constant"""
@@ -105,7 +110,10 @@ class ReducedSpectralDensityAnalysis:
     def calculate_J0(self, noe, r1, r2):
         """
         Calculate J(0) spectral density
-        
+
+        Implements Farrow et al. (1995) Equation 7:
+        J(0) = [R₂ - (3d²/8 + c²/2)J(ωN) - (13d²/8)J(ω̃H)] / (d²/2 + 2c²/3)
+
         Parameters:
         -----------
         noe : array-like
@@ -114,16 +122,17 @@ class ReducedSpectralDensityAnalysis:
             R1 relaxation rates (s-1)
         r2 : array-like
             R2 relaxation rates (s-1)
-            
+
         Returns:
         --------
         array : J(0) values
         """
         sigma_noe = self.calculate_sigma_NOE(noe, r1)
-        d = self.d_factor
-        c = self.c_factor
-        
-        j0 = (3.0 / (2.0 * (3.0 * d + c))) * (
+        d = self.d_factor  # d = d² (Farrow notation)
+        c = self.c_factor  # c = c²
+
+        # Farrow Eq. 7 with algebraically simplified form
+        j0 = (3.0 / (2.0 * (3.0 * d / 4.0 + c))) * (
             -0.5 * r1 + r2 - (3.0/5.0) * sigma_noe
         )
         return j0
@@ -131,7 +140,10 @@ class ReducedSpectralDensityAnalysis:
     def calculate_JwN(self, noe, r1, r2):
         """
         Calculate J(wN) spectral density
-        
+
+        Implements Farrow et al. (1995) Equation 6:
+        J(ωN) = [R₁ - (7d²/4)J(ω̃H)] / [(3d²/4) + c²]
+
         Parameters:
         -----------
         noe : array-like
@@ -140,37 +152,42 @@ class ReducedSpectralDensityAnalysis:
             R1 relaxation rates (s-1)
         r2 : array-like
             R2 relaxation rates (s-1)
-            
+
         Returns:
         --------
         array : J(wN) values
         """
         sigma_noe = self.calculate_sigma_NOE(noe, r1)
-        d = self.d_factor
-        c = self.c_factor
-        
-        jwn = (1.0 / (3.0 * d + c)) * (r1 - (7.0/5.0) * sigma_noe)
+        d = self.d_factor  # d = d² (Farrow notation)
+        c = self.c_factor  # c = c²
+
+        # Farrow Eq. 6: denominator has (3d²/4) + c²
+        jwn = (1.0 / (3.0 * d / 4.0 + c)) * (r1 - (7.0/5.0) * sigma_noe)
         return jwn
     
     def calculate_JwH(self, noe, r1):
         """
         Calculate J(wH) spectral density
-        
+
+        Implements Farrow et al. (1995) Equation 5:
+        J(ω̃H) = [4/(5d²)] × (γN/γH) × (NOE - 1) × R₁
+
         Parameters:
         -----------
         noe : array-like
             Heteronuclear NOE values
         r1 : array-like
             R1 relaxation rates (s-1)
-            
+
         Returns:
         --------
         array : J(wH) values
         """
         sigma_noe = self.calculate_sigma_NOE(noe, r1)
-        d = self.d_factor
-        
-        jwh = sigma_noe / (5.0 * d)
+        d = self.d_factor  # d = d² (Farrow notation)
+
+        # Farrow Eq. 5: J(ω̃H) = [4/(5d²)] × σNOE
+        jwh = 4.0 * sigma_noe / (5.0 * d)
         return jwh
     
     def calculate_isotropic_spectral_density(self, s2, tc, te, omega):
@@ -493,24 +510,24 @@ class ReducedSpectralDensityAnalysis:
         dsigma_dnoe = r1 * gamma_ratio
         sigma_noe_err = np.sqrt((dsigma_dr1 * r1_err)**2 + (dsigma_dnoe * noe_err)**2)
         
-        # J(0) and its error
-        j0 = (3.0 / (2.0 * (3.0 * d + c))) * (-0.5 * r1 + r2 - (3.0/5.0) * sigma_noe)
-        factor_j0 = 3.0 / (2.0 * (3.0 * d + c))
+        # J(0) and its error (Farrow-exact notation with d²/4)
+        j0 = (3.0 / (2.0 * (3.0 * d / 4.0 + c))) * (-0.5 * r1 + r2 - (3.0/5.0) * sigma_noe)
+        factor_j0 = 3.0 / (2.0 * (3.0 * d / 4.0 + c))
         dj0_dr1 = factor_j0 * (-0.5 - (3.0/5.0) * dsigma_dr1)
         dj0_dr2 = factor_j0
         dj0_dnoe = factor_j0 * (-(3.0/5.0) * dsigma_dnoe)
         j0_err = np.sqrt((dj0_dr1 * r1_err)**2 + (dj0_dr2 * r2_err)**2 + (dj0_dnoe * noe_err)**2)
         
-        # J(wN) and its error  
-        jwn = (1.0 / (3.0 * d + c)) * (r1 - (7.0/5.0) * sigma_noe)
-        factor_jwn = 1.0 / (3.0 * d + c)
+        # J(wN) and its error (Farrow-exact notation with d²/4)
+        jwn = (1.0 / (3.0 * d / 4.0 + c)) * (r1 - (7.0/5.0) * sigma_noe)
+        factor_jwn = 1.0 / (3.0 * d / 4.0 + c)
         djwn_dr1 = factor_jwn * (1.0 - (7.0/5.0) * dsigma_dr1)
         djwn_dnoe = factor_jwn * (-(7.0/5.0) * dsigma_dnoe)
         jwn_err = (np.sqrt((djwn_dr1 * r1_err)**2 + (djwn_dnoe * noe_err)**2))/2 ## /2 GM 
         
-        # J(wH) and its error
-        jwh = sigma_noe / (5.0 * d)
-        factor_jwh = 1.0 / (5.0 * d)
+        # J(wH) and its error (Farrow-exact notation with factor 4)
+        jwh = 4.0 * sigma_noe / (5.0 * d)
+        factor_jwh = 4.0 / (5.0 * d)
         djwh_dr1 = factor_jwh * dsigma_dr1
         djwh_dnoe = factor_jwh * dsigma_dnoe
         jwh_err = np.sqrt((djwh_dr1 * r1_err)**2 + (djwh_dnoe * noe_err)**2)

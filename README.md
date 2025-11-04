@@ -131,13 +131,19 @@ The dual-field approach provides better parameter separation by using data from 
 **Expected Rex scaling:** `Rex₂/Rex₁ ≈ (B₂/B₁)²`
 
 #### Reduced Spectral Density Mapping
-Alternative analysis using direct calculation:
+Alternative analysis using direct calculation (Farrow et al. 1995):
 ```
-need to be updated
-
+J(0) = (3/[2((3d²/4) + c²)]) × (-0.5R₁ + R₂ - (3/5)σNOE)
+J(ωN) = (1/((3d²/4) + c²)) × (R₁ - (7/5)σNOE)
+J(0.87ωH) = [4/(5d²)] × σNOE
 ```
 
-Where: `σNOE = (NOE - 1) × R₁ × (γN/γH)`
+Where:
+- `σNOE = (NOE - 1) × R₁ × (γN/γH)`
+- `d² = [μ₀ħγNγH/(8π²r³NH)]²` (dipolar coupling constant)
+- `c² = (ωN × Δσ)²/3` (CSA constant)
+
+**Reference:** Farrow et al. J. Biomol. NMR, 6 (1995) 153-162, Equations 5-7
 
 ## Technical Details
 
