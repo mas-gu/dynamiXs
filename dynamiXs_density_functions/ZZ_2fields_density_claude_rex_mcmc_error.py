@@ -335,13 +335,14 @@ class DualFieldSpectralDensityAnalysis:
                     axes[i,j].set_xlabel('Residue')
         
         plt.tight_layout()
-        
+
         if save_plots:
             plot_filename = f"{output_prefix}_analysis_results.pdf"
             plt.savefig(plot_filename, dpi=300, bbox_inches='tight')
             print(f"Plots saved as '{plot_filename}'")
-        
-        plt.show()
+            plt.close(fig)  # Close figure to free memory
+        else:
+            plt.close(fig)  # Always close to prevent memory leaks
 
     def save_results(self, results_df, filename='spectral_density_results.csv'):
         """

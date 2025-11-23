@@ -26,6 +26,8 @@ os.environ['MKL_NUM_THREADS'] = str(int(os.cpu_count() * 0.8))
 
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # Non-interactive backend (must be before pyplot import)
 import matplotlib.pyplot as plt
 from scipy import stats
 from scipy.optimize import minimize
@@ -262,12 +264,12 @@ class DualFieldSpectralDensityAnalysis:
             
             # Calculate predicted relaxation parameters for both fields
             # Field 1
-            r1_calc_f1 = A1 * (3*jN1 + 6*jHpN1 + jHmN1) + C1 * jN1
-            r2_calc_f1 = 0.5 * A1 * (4*j01 + 3*jN1 + 6*jHpN1 + 6*jH1 + jHmN1) + C1 * (2*j01/3.0 + 0.5*jN1) + rex1
-            
+            r1_calc_f1 = (A1 / 4.0) * (3*jN1 + 6*jHpN1 + jHmN1) + C1 * jN1
+            r2_calc_f1 = 0.5 * (A1 / 4.0) * (4*j01 + 3*jN1 + 6*jHpN1 + 6*jH1 + jHmN1) + C1 * (2*j01/3.0 + 0.5*jN1) + rex1
+
             # Field 2
-            r1_calc_f2 = A2 * (3*jN2 + 6*jHpN2 + jHmN2) + C2 * jN2
-            r2_calc_f2 = 0.5 * A2 * (4*j02 + 3*jN2 + 6*jHpN2 + 6*jH2 + jHmN2) + C2 * (2*j02/3.0 + 0.5*jN2) + rex2
+            r1_calc_f2 = (A2 / 4.0) * (3*jN2 + 6*jHpN2 + jHmN2) + C2 * jN2
+            r2_calc_f2 = 0.5 * (A2 / 4.0) * (4*j02 + 3*jN2 + 6*jHpN2 + 6*jH2 + jHmN2) + C2 * (2*j02/3.0 + 0.5*jN2) + rex2
             
             t1_calc_f1, t2_calc_f1 = 1.0 / r1_calc_f1, 1.0 / r2_calc_f1
             t1_calc_f2, t2_calc_f2 = 1.0 / r1_calc_f2, 1.0 / r2_calc_f2
@@ -282,12 +284,12 @@ class DualFieldSpectralDensityAnalysis:
             
             # Add NOE contributions for both fields
             if noe_f1 is not None and not pd.isna(noe_f1):
-                noe_calc_f1 = 1.0 + (A1 * gammaHN * t1_calc_f1 * (6*jHpN1 - jHmN1))
+                noe_calc_f1 = 1.0 + ((A1 / 4.0) * gammaHN * t1_calc_f1 * (6*jHpN1 - jHmN1))
                 dn_f1 = (noe_calc_f1 - noe_f1) / (0.1 if noe_f1 == 0 else abs(noe_f1))
                 score += dn_f1*dn_f1
-                
+
             if noe_f2 is not None and not pd.isna(noe_f2):
-                noe_calc_f2 = 1.0 + (A2 * gammaHN * t1_calc_f2 * (6*jHpN2 - jHmN2))
+                noe_calc_f2 = 1.0 + ((A2 / 4.0) * gammaHN * t1_calc_f2 * (6*jHpN2 - jHmN2))
                 dn_f2 = (noe_calc_f2 - noe_f2) / (0.1 if noe_f2 == 0 else abs(noe_f2))
                 score += dn_f2*dn_f2
                 
@@ -337,10 +339,10 @@ class DualFieldSpectralDensityAnalysis:
             j02 = self.calculate_isotropic_spectral_density(s2_new, tc_fixed, te_new, 0.0)
             
             # Calculate relaxation parameters
-            r1_calc_f1 = A1 * (3*jN1 + 6*jHpN1 + jHmN1) + C1 * jN1
-            r2_calc_f1 = 0.5 * A1 * (4*j01 + 3*jN1 + 6*jHpN1 + 6*jH1 + jHmN1) + C1 * (2*j01/3.0 + 0.5*jN1) + rex1_new
-            r1_calc_f2 = A2 * (3*jN2 + 6*jHpN2 + jHmN2) + C2 * jN2
-            r2_calc_f2 = 0.5 * A2 * (4*j02 + 3*jN2 + 6*jHpN2 + 6*jH2 + jHmN2) + C2 * (2*j02/3.0 + 0.5*jN2) + rex2_new
+            r1_calc_f1 = (A1 / 4.0) * (3*jN1 + 6*jHpN1 + jHmN1) + C1 * jN1
+            r2_calc_f1 = 0.5 * (A1 / 4.0) * (4*j01 + 3*jN1 + 6*jHpN1 + 6*jH1 + jHmN1) + C1 * (2*j01/3.0 + 0.5*jN1) + rex1_new
+            r1_calc_f2 = (A2 / 4.0) * (3*jN2 + 6*jHpN2 + jHmN2) + C2 * jN2
+            r2_calc_f2 = 0.5 * (A2 / 4.0) * (4*j02 + 3*jN2 + 6*jHpN2 + 6*jH2 + jHmN2) + C2 * (2*j02/3.0 + 0.5*jN2) + rex2_new
             
             t1_calc_f1, t2_calc_f1 = 1.0 / r1_calc_f1, 1.0 / r2_calc_f1
             t1_calc_f2, t2_calc_f2 = 1.0 / r1_calc_f2, 1.0 / r2_calc_f2
@@ -354,12 +356,12 @@ class DualFieldSpectralDensityAnalysis:
             
             # Add NOE contributions
             if noe_f1 is not None and not pd.isna(noe_f1):
-                noe_calc_f1 = 1.0 + (A1 * gammaHN * t1_calc_f1 * (6*jHpN1 - jHmN1))
+                noe_calc_f1 = 1.0 + ((A1 / 4.0) * gammaHN * t1_calc_f1 * (6*jHpN1 - jHmN1))
                 dn_f1 = (noe_calc_f1 - noe_f1) / (0.1 if noe_f1 == 0 else abs(noe_f1))
                 score += dn_f1*dn_f1
-                
+
             if noe_f2 is not None and not pd.isna(noe_f2):
-                noe_calc_f2 = 1.0 + (A2 * gammaHN * t1_calc_f2 * (6*jHpN2 - jHmN2))
+                noe_calc_f2 = 1.0 + ((A2 / 4.0) * gammaHN * t1_calc_f2 * (6*jHpN2 - jHmN2))
                 dn_f2 = (noe_calc_f2 - noe_f2) / (0.1 if noe_f2 == 0 else abs(noe_f2))
                 score += dn_f2*dn_f2
             
@@ -435,12 +437,12 @@ class DualFieldSpectralDensityAnalysis:
         best_fit = self._fit_dual_field_dataset(r1_f1, r2_f1, noe_f1, r1_f2, r2_f2, noe_f2, tc_fixed, niter)
         
         # Check if errors are provided for Monte Carlo
-        errors_provided = all(err is not None for err in [r1_f1_err, r2_f1_err, noe_f1_err, 
+        errors_provided = all(err is not None for err in [r1_f1_err, r2_f1_err, noe_f1_err,
                                                          r1_f2_err, r2_f2_err, noe_f2_err])
-        
+
         if not errors_provided or not best_fit['fit_success']:
             return best_fit
-        
+
         # Monte Carlo error propagation
         print(f"  Running dual-field Monte Carlo error analysis ({n_monte_carlo} samples)...", end='', flush=True)
         mc_results = {'S2': [], 'te': [], 'Rex_f1': [], 'Rex_f2': [], 'chi2': []}
@@ -470,13 +472,14 @@ class DualFieldSpectralDensityAnalysis:
                 mc_results['chi2'].append(mc_fit['chi2'])
         
         print(" done")
-        
+
         # Calculate errors from Monte Carlo distribution
         n_successful = len(mc_results['S2'])
         if n_successful < 10:
             print(f"    Warning: Only {n_successful}/{n_monte_carlo} dual-field MC fits succeeded")
+            print(f"    Returning ensemble-based errors instead of Monte Carlo errors")
             return best_fit
-        
+
         # Update errors with Monte Carlo results
         best_fit['S2_err'] = np.std(mc_results['S2'])
         best_fit['te_err'] = np.std(mc_results['te'])
@@ -629,8 +632,18 @@ class DualFieldSpectralDensityAnalysis:
         
         # Align datasets by residue identifier
         if residue_col in data1.columns and residue_col in data2.columns:
-            # Merge on residue identifier and reset index to ensure 0-based sequential numbering
-            merged_data = pd.merge(data1, data2, on=residue_col, suffixes=('_f1', '_f2')).reset_index(drop=True)
+            # Merge on residue identifier
+            merged_data = pd.merge(data1, data2, on=residue_col, suffixes=('_f1', '_f2'))
+
+            # Sort numerically by residue ID (extract numeric part for proper ordering)
+            import re
+            def extract_numeric(res_id):
+                """Extract numeric part from residue ID for sorting (e.g., '3.LYS' -> 3, '10' -> 10)"""
+                match = re.search(r'\d+', str(res_id))
+                return int(match.group()) if match else 0
+
+            merged_data['_sort_key'] = merged_data[residue_col].apply(extract_numeric)
+            merged_data = merged_data.sort_values('_sort_key').drop('_sort_key', axis=1).reset_index(drop=True)
             print(f"Matched {len(merged_data)} residues between the two datasets")
         else:
             # Merge by index if no residue column
@@ -792,18 +805,13 @@ class DualFieldSpectralDensityAnalysis:
                     r1_f2, r1_f2_err, r2_f2, r2_f2_err, noe_f2, noe_f2_err
                 )
                 
-                # Fit dual-field model-free parameters
-                if use_monte_carlo_errors:
-                    mf_results = self.fit_dual_field_model_free(
-                        r1_f1, r2_f1, noe_f1, r1_f2, r2_f2, noe_f2, tc_overall,
-                        r1_f1_err=r1_f1_err, r2_f1_err=r2_f1_err, noe_f1_err=noe_f1_err,
-                        r1_f2_err=r1_f2_err, r2_f2_err=r2_f2_err, noe_f2_err=noe_f2_err,
-                        n_monte_carlo=n_monte_carlo
-                    )
-                else:
-                    mf_results = self.fit_dual_field_model_free(
-                        r1_f1, r2_f1, noe_f1, r1_f2, r2_f2, noe_f2, tc_overall
-                    )
+                # Fit dual-field model-free parameters with Monte Carlo error propagation
+                mf_results = self.fit_dual_field_model_free(
+                    r1_f1, r2_f1, noe_f1, r1_f2, r2_f2, noe_f2, tc_overall,
+                    r1_f1_err=r1_f1_err, r2_f1_err=r2_f1_err, noe_f1_err=noe_f1_err,
+                    r1_f2_err=r1_f2_err, r2_f2_err=r2_f2_err, noe_f2_err=noe_f2_err,
+                    n_monte_carlo=n_monte_carlo
+                )
                 
                 # Compile results
                 result_row = {
@@ -884,12 +892,12 @@ class DualFieldSpectralDensityAnalysis:
         best_fit = self._fit_dual_field_dataset(r1_f1, r2_f1, noe_f1, r1_f2, r2_f2, noe_f2, tc_fixed, niter)
         
         # Check if errors are provided for Monte Carlo
-        errors_provided = all(err is not None for err in [r1_f1_err, r2_f1_err, noe_f1_err, 
+        errors_provided = all(err is not None for err in [r1_f1_err, r2_f1_err, noe_f1_err,
                                                          r1_f2_err, r2_f2_err, noe_f2_err])
-        
+
         if not errors_provided or not best_fit['fit_success']:
             return best_fit
-        
+
         # Determine number of processes
         if n_processes is None:
             n_processes = max(1, int(cpu_count() * 0.8))
@@ -941,13 +949,14 @@ class DualFieldSpectralDensityAnalysis:
                 mc_results['chi2'].append(result['chi2'])
         
         print(" done")
-        
+
         # Calculate errors from Monte Carlo distribution
         n_successful = len(mc_results['S2'])
         if n_successful < 10:
             print(f"    Warning: Only {n_successful}/{n_monte_carlo} parallel dual-field MC fits succeeded")
+            print(f"    Returning ensemble-based errors instead of Monte Carlo errors")
             return best_fit
-        
+
         # Update errors with Monte Carlo results
         best_fit['S2_err'] = np.std(mc_results['S2'])
         best_fit['te_err'] = np.std(mc_results['te'])
@@ -981,99 +990,133 @@ class DualFieldSpectralDensityAnalysis:
         # Filter successful fits
         success_mask = results_df['fit_success'] == True
         good_data = results_df[success_mask]
-        
+
         if len(good_data) == 0:
                 print("No successful fits to plot!")
                 return
-        
+
         residues = good_data.index if 'Residue' not in good_data.columns else good_data['Residue']
-        
+
+        # Detect missing residues for grey bar plotting
+        import re
+        def extract_numeric(res_id):
+                match = re.search(r'\d+', str(res_id))
+                return int(match.group()) if match else 0
+
+        residue_numbers = [extract_numeric(r) for r in residues]
+        if len(residue_numbers) > 0:
+                max_res = max(residue_numbers)
+                all_residues_range = set(range(1, max_res + 1))  # Always start from residue 1
+                present_residues = set(residue_numbers)
+                missing_residues = sorted(all_residues_range - present_residues)
+        else:
+                missing_residues = []
+
+        # Helper function to add grey bars for missing residues
+        def add_missing_residue_bars(ax, missing_residues):
+                """Add grey vertical bars for missing residues spanning full y-axis range"""
+                if len(missing_residues) == 0:
+                        return
+                y_min, y_max = ax.get_ylim()
+                for res_num in missing_residues:
+                        ax.axvspan(res_num - 0.5, res_num + 0.5,
+                                  facecolor='lightgrey', alpha=0.3, zorder=0)
+
         # Row 1: Experimental data comparison (R1, R2, hetNOE)
         # R1 comparison
-        axes[0,0].errorbar(residues, good_data['R1_f1'], yerr=good_data['R1_f1_err'], 
+        axes[0,0].set_ylim(0, 2)
+        add_missing_residue_bars(axes[0,0], missing_residues)
+        axes[0,0].errorbar(residue_numbers, good_data['R1_f1'], yerr=good_data['R1_f1_err'],
                                           fmt='o', capsize=3, label=f'{self.field1_freq} MHz', alpha=0.7)
-        axes[0,0].errorbar(residues, good_data['R1_f2'], yerr=good_data['R1_f2_err'], 
+        axes[0,0].errorbar(residue_numbers, good_data['R1_f2'], yerr=good_data['R1_f2_err'],
                                           fmt='s', capsize=3, label=f'{self.field2_freq} MHz', alpha=0.7)
         axes[0,0].set_title('R1 Comparison')
         axes[0,0].set_ylabel('R1 (s⁻¹)')
         axes[0,0].legend()
-        axes[0,0].set_ylim(0, 2)
         
         # R2 comparison
-        axes[0,1].errorbar(residues, good_data['R2_f1'], yerr=good_data['R2_f1_err'],
+        axes[0,1].set_ylim(0, 30)
+        add_missing_residue_bars(axes[0,1], missing_residues)
+        axes[0,1].errorbar(residue_numbers, good_data['R2_f1'], yerr=good_data['R2_f1_err'],
                                           fmt='o', capsize=3, label=f'{self.field1_freq} MHz', alpha=0.7)
-        axes[0,1].errorbar(residues, good_data['R2_f2'], yerr=good_data['R2_f2_err'],
+        axes[0,1].errorbar(residue_numbers, good_data['R2_f2'], yerr=good_data['R2_f2_err'],
                                           fmt='s', capsize=3, label=f'{self.field2_freq} MHz', alpha=0.7)
         axes[0,1].set_title('R2 Comparison')
         axes[0,1].set_ylabel('R2 (s⁻¹)')
         axes[0,1].legend()
-        axes[0,1].set_ylim(0, 30)
         
         # hetNOE comparison
-        axes[0,2].errorbar(residues, good_data['hetNOE_f1'], yerr=good_data['hetNOE_f1_err'],
+        axes[0,2].set_ylim(0, 1)
+        add_missing_residue_bars(axes[0,2], missing_residues)
+        axes[0,2].errorbar(residue_numbers, good_data['hetNOE_f1'], yerr=good_data['hetNOE_f1_err'],
                                           fmt='o', capsize=3, label=f'{self.field1_freq} MHz', alpha=0.7)
-        axes[0,2].errorbar(residues, good_data['hetNOE_f2'], yerr=good_data['hetNOE_f2_err'],
+        axes[0,2].errorbar(residue_numbers, good_data['hetNOE_f2'], yerr=good_data['hetNOE_f2_err'],
                                           fmt='s', capsize=3, label=f'{self.field2_freq} MHz', alpha=0.7)
         axes[0,2].set_title('hetNOE Comparison')
         axes[0,2].set_ylabel('hetNOE')
         axes[0,2].legend()
-        axes[0,2].set_ylim(0, 1)
         
         # Row 2: Spectral densities comparison (J0, JwN, JwH)
         # J(0) comparison
-        axes[1,0].errorbar(residues, good_data['J0_f1'], yerr=good_data['J0_f1_err'], 
+        axes[1,0].set_ylim(0, 0.000000008)
+        add_missing_residue_bars(axes[1,0], missing_residues)
+        axes[1,0].errorbar(residue_numbers, good_data['J0_f1'], yerr=good_data['J0_f1_err'],
                                           fmt='o', capsize=3, label=f'{self.field1_freq} MHz', alpha=0.7)
-        axes[1,0].errorbar(residues, good_data['J0_f2'], yerr=good_data['J0_f2_err'], 
+        axes[1,0].errorbar(residue_numbers, good_data['J0_f2'], yerr=good_data['J0_f2_err'],
                                           fmt='s', capsize=3, label=f'{self.field2_freq} MHz', alpha=0.7)
         axes[1,0].set_title('J(0) Comparison')
         axes[1,0].set_ylabel('J(0) (ns/rad²)')
         axes[1,0].legend()
-        axes[1,0].set_ylim(0, 0.000000008)
         
         # J(ωN) comparison
-        axes[1,1].errorbar(residues, good_data['JwN_f1'], yerr=good_data['JwN_f1_err'],
+        axes[1,1].set_ylim(0, 0.0000000004)
+        add_missing_residue_bars(axes[1,1], missing_residues)
+        axes[1,1].errorbar(residue_numbers, good_data['JwN_f1'], yerr=good_data['JwN_f1_err'],
                                           fmt='o', capsize=3, label=f'{self.field1_freq} MHz', alpha=0.7)
-        axes[1,1].errorbar(residues, good_data['JwN_f2'], yerr=good_data['JwN_f2_err'],
+        axes[1,1].errorbar(residue_numbers, good_data['JwN_f2'], yerr=good_data['JwN_f2_err'],
                                           fmt='s', capsize=3, label=f'{self.field2_freq} MHz', alpha=0.7)
         axes[1,1].set_title('J(ωN) Comparison')
         axes[1,1].set_ylabel('J(ωN) (ns/rad²)')
         axes[1,1].legend()
-        axes[1,1].set_ylim(0, 0.0000000004)
         
         # J(0.87ωH) comparison
-        axes[1,2].errorbar(residues, good_data['JwH_087_f1'], yerr=good_data['JwH_087_f1_err'],
+        axes[1,2].set_ylim(0, 0.00000000002)
+        add_missing_residue_bars(axes[1,2], missing_residues)
+        axes[1,2].errorbar(residue_numbers, good_data['JwH_087_f1'], yerr=good_data['JwH_087_f1_err'],
                                           fmt='o', capsize=3, label=f'{self.field1_freq} MHz', alpha=0.7)
-        axes[1,2].errorbar(residues, good_data['JwH_087_f2'], yerr=good_data['JwH_087_f2_err'],
+        axes[1,2].errorbar(residue_numbers, good_data['JwH_087_f2'], yerr=good_data['JwH_087_f2_err'],
                                           fmt='s', capsize=3, label=f'{self.field2_freq} MHz', alpha=0.7)
         axes[1,2].set_title('J(0.87ωH) Comparison')
         axes[1,2].set_ylabel('J(0.87ωH) (ns/rad²)')
         axes[1,2].legend()
-        axes[1,2].set_ylim(0, 0.00000000002)
         
         # Row 3: Model-free parameters (S², τe, Rex comparison)
         # S²
-        axes[2,0].errorbar(residues, good_data['S2'], yerr=good_data['S2_err'],
-                                          fmt='o', capsize=3, color='blue')                 
+        axes[2,0].set_ylim(0, 1)
+        add_missing_residue_bars(axes[2,0], missing_residues)
+        axes[2,0].errorbar(residue_numbers, good_data['S2'], yerr=good_data['S2_err'],
+                                          fmt='o', capsize=3, color='blue')
         axes[2,0].set_title('Order Parameter S² (Dual-Field)')
         axes[2,0].set_ylabel('S²')
-        axes[2,0].set_ylim(0, 1)
         
-        # τe  
-        axes[2,1].errorbar(residues, good_data['te'], yerr=good_data['te_err'],
+        # τe
+        axes[2,1].set_ylim(0, 100)
+        add_missing_residue_bars(axes[2,1], missing_residues)
+        axes[2,1].errorbar(residue_numbers, good_data['te'], yerr=good_data['te_err'],
                                           fmt='o', capsize=3, color='purple')
         axes[2,1].set_title('Internal Correlation Time τe (Dual-Field)')
-        axes[2,1].set_ylim(0, 100) 
         axes[2,1].set_ylabel('τe (ps)')
         
         # Rex comparison
-        axes[2,2].errorbar(residues, good_data['Rex_f1'], yerr=good_data['Rex_f1_err'],
+        axes[2,2].set_ylim(0, 20)
+        add_missing_residue_bars(axes[2,2], missing_residues)
+        axes[2,2].errorbar(residue_numbers, good_data['Rex_f1'], yerr=good_data['Rex_f1_err'],
                                           fmt='o', capsize=3, label=f'Rex {self.field1_freq} MHz', alpha=0.7)
-        axes[2,2].errorbar(residues, good_data['Rex_f2'], yerr=good_data['Rex_f2_err'],
+        axes[2,2].errorbar(residue_numbers, good_data['Rex_f2'], yerr=good_data['Rex_f2_err'],
                                           fmt='s', capsize=3, label=f'Rex {self.field2_freq} MHz', alpha=0.7)
         axes[2,2].set_title('Chemical Exchange Rex Comparison')
         axes[2,2].set_ylabel('Rex (s⁻¹)')
         axes[2,2].legend()
-        axes[2,2].set_ylim(0, 20)
         
         # Row 4: Field-dependence analysis
         # Rex field dependence
@@ -1135,20 +1178,34 @@ class DualFieldSpectralDensityAnalysis:
                 for j in range(3):
                         axes[i,j].set_xlabel('Residue')
                         axes[i,j].grid(True, alpha=0.3)
-        
+
         # Fourth row has different x-labels
         axes[3,0].grid(True, alpha=0.3)
-        axes[3,1].grid(True, alpha=0.3) 
+        axes[3,1].grid(True, alpha=0.3)
         axes[3,2].grid(True, alpha=0.3)
-                
+
+        # Set x-axis ticks to show every 10 residues (1, 10, 20, 30, ...)
+        if len(residue_numbers) > 0:
+                max_res = max(residue_numbers)
+
+                # Create ticks: start at 1, then every 10 (10, 20, 30, ...)
+                tick_positions = [1] + list(range(10, max_res + 1, 10))
+
+                # Apply to first 3 rows (plots with residue x-axis)
+                for i in range(3):
+                        for j in range(3):
+                                axes[i,j].set_xticks(tick_positions)
+                                axes[i,j].tick_params(axis='x', rotation=0)
+
         plt.tight_layout()
         
         if save_plots:
                 filename = plot_filename or 'dual_field_analysis_results.pdf'
                 plt.savefig(filename, dpi=300, bbox_inches='tight')
                 print(f"Plots saved as '{filename}'")
-        
-        plt.show()
+                plt.close(fig)  # Close figure to free memory
+        else:
+                plt.close(fig)  # Always close to prevent memory leaks
 
     def save_dual_field_results(self, results_df, filename='dual_field_detailed_results.csv'):
         """
@@ -1252,18 +1309,13 @@ def _worker_process_residue_087(args):
             r1_f2, r1_f2_err, r2_f2, r2_f2_err, noe_f2, noe_f2_err
         )
         
-        # Fit dual-field model-free parameters
-        if use_monte_carlo_errors:
-            mf_results = analyzer.fit_dual_field_model_free(
-                r1_f1, r2_f1, noe_f1, r1_f2, r2_f2, noe_f2, tc_overall,
-                r1_f1_err=r1_f1_err, r2_f1_err=r2_f1_err, noe_f1_err=noe_f1_err,
-                r1_f2_err=r1_f2_err, r2_f2_err=r2_f2_err, noe_f2_err=noe_f2_err,
-                n_monte_carlo=n_monte_carlo
-            )
-        else:
-            mf_results = analyzer.fit_dual_field_model_free(
-                r1_f1, r2_f1, noe_f1, r1_f2, r2_f2, noe_f2, tc_overall
-            )
+        # Fit dual-field model-free parameters with Monte Carlo error propagation
+        mf_results = analyzer.fit_dual_field_model_free(
+            r1_f1, r2_f1, noe_f1, r1_f2, r2_f2, noe_f2, tc_overall,
+            r1_f1_err=r1_f1_err, r2_f1_err=r2_f1_err, noe_f1_err=noe_f1_err,
+            r1_f2_err=r1_f2_err, r2_f2_err=r2_f2_err, noe_f2_err=noe_f2_err,
+            n_monte_carlo=n_monte_carlo
+        )
         
         # Compile results
         result_row = {

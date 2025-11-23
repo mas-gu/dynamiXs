@@ -9,6 +9,8 @@ S2, Rex, and te parameters with proper error propagation.
 
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # Non-interactive backend (must be before pyplot import)
 import matplotlib.pyplot as plt
 from scipy import stats
 from scipy.optimize import minimize
@@ -283,8 +285,8 @@ class ReducedSpectralDensityAnalysis:
             j0 = self.calculate_isotropic_spectral_density(s2, tc_fixed, te, 0.0)
             
             # Calculate predicted relaxation parameters
-            r1_calc = A * (3*jN + 6*jHpN + jHmN) + C * jN
-            r2_calc = 0.5 * A * (4*j0 + 3*jN + 6*jHpN + 6*jH + jHmN) + C * (2*j0/3.0 + 0.5*jN) + rex
+            r1_calc = (A / 4.0) * (3*jN + 6*jHpN + jHmN) + C * jN
+            r2_calc = 0.5 * (A / 4.0) * (4*j0 + 3*jN + 6*jHpN + 6*jH + jHmN) + C * (2*j0/3.0 + 0.5*jN) + rex
             
             t1_calc = 1.0 / r1_calc
             t2_calc = 1.0 / r2_calc
@@ -296,7 +298,7 @@ class ReducedSpectralDensityAnalysis:
             
             # Add NOE contribution if available
             if noe is not None and not pd.isna(noe):
-                noe_calc = 1.0 + (A * gammaHN * t1 * (6*jHpN - jHmN))
+                noe_calc = 1.0 + ((A / 4.0) * gammaHN * t1 * (6*jHpN - jHmN))
                 dn = (noe_calc - noe) / (0.1 if noe == 0 else abs(noe))  # Avoid division by zero
                 score += dn*dn
                 
@@ -335,8 +337,8 @@ class ReducedSpectralDensityAnalysis:
             jHmN = self.calculate_isotropic_spectral_density(s2_new, tc_fixed, te_new, self.omegaH - abs(self.omegaN))
             j0 = self.calculate_isotropic_spectral_density(s2_new, tc_fixed, te_new, 0.0)
             
-            r1_calc = A * (3*jN + 6*jHpN + jHmN) + C * jN
-            r2_calc = 0.5 * A * (4*j0 + 3*jN + 6*jHpN + 6*jH + jHmN) + C * (2*j0/3.0 + 0.5*jN) + rex_new
+            r1_calc = (A / 4.0) * (3*jN + 6*jHpN + jHmN) + C * jN
+            r2_calc = 0.5 * (A / 4.0) * (4*j0 + 3*jN + 6*jHpN + 6*jH + jHmN) + C * (2*j0/3.0 + 0.5*jN) + rex_new
             
             t1_calc = 1.0 / r1_calc
             t2_calc = 1.0 / r2_calc
@@ -346,7 +348,7 @@ class ReducedSpectralDensityAnalysis:
             score = d1*d1 + d2*d2
             
             if noe is not None and not pd.isna(noe):
-                noe_calc = 1.0 + (A * gammaHN * t1 * (6*jHpN - jHmN))
+                noe_calc = 1.0 + ((A / 4.0) * gammaHN * t1 * (6*jHpN - jHmN))
                 dn = (noe_calc - noe) / (0.1 if noe == 0 else abs(noe))
                 score += dn*dn
             
@@ -750,12 +752,13 @@ class ReducedSpectralDensityAnalysis:
             ax.grid(True, alpha=0.3)
             
         plt.tight_layout()
-        
+
         if save_plots:
             plt.savefig('ZZ_WT_rsdm_mcmc.pdf', dpi=300, bbox_inches='tight')
             print("Plots saved as 'ZZ_WT_rsdm_analysis_results.pdf'")
-        
-        plt.show()
+            plt.close(fig)  # Close figure to free memory
+        else:
+            plt.close(fig)  # Always close to prevent memory leaks
 
     def save_detailed_results(self, results_df, filename='ZZ_WT_detailed_results.csv'):
         """
