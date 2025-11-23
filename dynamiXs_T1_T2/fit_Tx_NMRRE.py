@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 from lmfit import Model
 import pandas as pd
 import os
+import json
 from pathlib import Path
 
 
@@ -196,7 +197,7 @@ def create_plots(results_list, output_prefix, n_plots_per_figure=20,
 def save_results(results_list, output_file, experiment_type="T1"):
     """
     Save fitting results to text file
-    
+
     Parameters:
     -----------
     results_list : list
@@ -211,6 +212,78 @@ def save_results(results_list, output_file, experiment_type="T1"):
         for result in results_list:
             f.write(f"{result['residue']}\t{result['A']:.6e}\t{result['t2']:.6e}\t"
                    f"{result['A_err']:.6e}\t{result['t2_err']:.6e}\n")
+
+
+def save_fit_data_json(results_list, output_file, experiment_type, time_units,
+                       signal_units, n_bootstrap, field_freq):
+    """
+    Save complete fitting data as JSON for interactive visualization
+
+    Parameters:
+    -----------
+    results_list : list
+        List of fitting results dictionaries
+    output_file : str
+        Output JSON filename
+    experiment_type : str
+        Type of experiment (T1, T2)
+    time_units : str
+        Units for time axis
+    signal_units : str
+        Units for signal axis
+    n_bootstrap : int
+        Number of bootstrap iterations used
+    field_freq : float
+        Magnetic field frequency in MHz
+    """
+    # Get time points from first result (same for all residues)
+    if not results_list:
+        raise ValueError("No results to save")
+
+    time_points = results_list[0]['x'].tolist()
+
+    # Build fit curve points (dense sampling for smooth plotting)
+    max_time = max(time_points)
+    fit_time_dense = np.linspace(0, max_time * 1.2, 100)
+
+    fits_data = []
+    for result in results_list:
+        # Calculate fit curve using fitted parameters
+        fit_intensity = result['A'] * np.exp(-fit_time_dense / result['t2'])
+
+        fits_data.append({
+            'residue': str(result['residue']),
+            'A': float(result['A']),
+            't2': float(result['t2']),
+            'A_err': float(result['A_err']),
+            't2_err': float(result['t2_err']),
+            'intensities': [float(val) for val in result['y']],
+            'fit_curve': {
+                'time': [float(t) for t in fit_time_dense],
+                'intensity': [float(i) for i in fit_intensity]
+            }
+        })
+
+    output_data = {
+        'metadata': {
+            'experiment_type': experiment_type,
+            'field_freq': float(field_freq),
+            'time_units': time_units,
+            'signal_units': signal_units,
+            'n_bootstrap': n_bootstrap,
+            'n_residues': len(results_list),
+            'time_points': [float(t) for t in time_points]
+        },
+        'fits': fits_data
+    }
+
+    # Ensure output directory exists
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
+    with open(output_file, 'w') as f:
+        json.dump(output_data, f, indent=2)
+
+    print(f"Saved JSON fit data to: {output_file}")
 
 
 def main():
@@ -386,11 +459,34 @@ def run_analysis_with_params(params):
     # Save results
     print(f"Saving results to {results_txt_file}...")
     save_results(results_list, results_txt_file, experiment_type)
-    
+
+    # Save JSON data for interactive visualization
+    json_folder = params.get('json_folder')
+    json_file = None
+    if json_folder:
+        # Create json folder if it doesn't exist
+        os.makedirs(json_folder, exist_ok=True)
+
+        # Construct JSON filename: field{N}_{T1|T2}_fit_data.json
+        field_name = params.get('field_name', 'field1')
+        json_filename = f"{field_name}_{experiment_type}_fit_data.json"
+        json_file = os.path.join(json_folder, json_filename)
+
+        print(f"Saving JSON fit data to {json_file}...")
+        save_fit_data_json(
+            results_list=results_list,
+            output_file=json_file,
+            experiment_type=experiment_type,
+            time_units=time_units,
+            signal_units=signal_units,
+            n_bootstrap=n_bootstrap,
+            field_freq=params.get('field_freq', 600.0)
+        )
+
     # Summary statistics
     t2_values = [r['t2'] for r in results_list]
     t2_errors = [r['t2_err'] for r in results_list]
-    
+
     print(f"\n{experiment_type} Analysis Summary:")
     print(f"  Number of residues fitted: {len(results_list)}")
     print(f"  {experiment_type} range: {min(t2_values):.2f} to {max(t2_values):.2f} {time_units}")
@@ -398,14 +494,17 @@ def run_analysis_with_params(params):
     print(f"  Mean fitting error: {np.mean(t2_errors):.2f} {time_units}")
     print(f"  Results saved to: {results_txt_file}")
     print(f"  Plots saved with prefix: {output_prefix}")
-    
+    if json_file:
+        print(f"  JSON data saved to: {json_file}")
+
     print("Analysis completed successfully!")
-    
+
     # Return results summary
     return {
         'n_fitted': len(results_list),
         'results_file': results_txt_file,
         'plots_prefix': output_prefix,
+        'json_file': json_file,
         't2_range': (min(t2_values), max(t2_values)),
         'mean_t2': np.mean(t2_values),
         'std_t2': np.std(t2_values),

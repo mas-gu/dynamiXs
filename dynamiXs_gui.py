@@ -1839,6 +1839,23 @@ class IntegratedAnalysisGUI:
         self.output_prefix_var = tk.StringVar(value="integrated_analysis")
         create_entry(output_prefix_row, textvariable=self.output_prefix_var, width=250).pack(side=tk.LEFT, padx=(SPACING_SM, 0), fill=tk.X, expand=True)
 
+        # JSON data folder (for fit visualization data)
+        json_folder_row = ctk.CTkFrame(output_frame.content, fg_color="transparent")
+        json_folder_row.pack(fill=tk.X, pady=(0, SPACING_SM))
+        create_label(json_folder_row, text="JSON Data Folder:").pack(side=tk.LEFT)
+
+        # Default: {output_directory}/json
+        self.json_folder_var = tk.StringVar(value="json")
+
+        json_folder_label = ctk.CTkLabel(json_folder_row, textvariable=self.json_folder_var,
+                                        fg_color=FRAME_BG_COLOR, corner_radius=BUTTON_CORNER_RADIUS,
+                                        font=FONT_SMALL, text_color=SECONDARY_TEXT, anchor="w")
+        json_folder_label.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(SPACING_SM, SPACING_SM))
+
+        json_folder_btn = create_secondary_button(json_folder_row, text="Browse Folder",
+                                                  command=self.browse_json_folder, width=120)
+        json_folder_btn.pack(side=tk.LEFT)
+
         # Action buttons
         button_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
         button_frame.pack(fill=tk.X, pady=(SPACING_MD, 0))
@@ -1853,7 +1870,11 @@ class IntegratedAnalysisGUI:
 
         view_results_btn = create_secondary_button(button_frame, text="View Results",
                                                    command=self.open_results_viewer, width=120)
-        view_results_btn.pack(side=tk.LEFT)
+        view_results_btn.pack(side=tk.LEFT, padx=(0, SPACING_SM))
+
+        view_fits_btn = create_secondary_button(button_frame, text="View Fits",
+                                                command=self.open_fit_viewer, width=100)
+        view_fits_btn.pack(side=tk.LEFT)
 
         # Progress log
         log_frame = CTkLabelFrame(scroll_frame, text="📋 Progress Log", padding=SPACING_MD)
@@ -2033,6 +2054,23 @@ class IntegratedAnalysisGUI:
             # Show full path in label for clarity
             self.output_dir_var.set(folder_path)
 
+    def browse_json_folder(self):
+        """Browse for JSON data folder"""
+        # Get current json folder path (absolute)
+        current_json = self.json_folder_var.get()
+        if current_json == "json":
+            initial_dir = os.path.join(self.output_dir, "json")
+        else:
+            initial_dir = current_json
+
+        folder_path = filedialog.askdirectory(
+            title="Select JSON Data Folder",
+            initialdir=initial_dir if os.path.exists(initial_dir) else self.output_dir
+        )
+        if folder_path:
+            # Show full path
+            self.json_folder_var.set(folder_path)
+
     def toggle_dual_field(self):
         """Enable/disable Field 2 inputs"""
         # Toggle the state
@@ -2129,9 +2167,19 @@ class IntegratedAnalysisGUI:
             # Combine output directory + prefix for full path
             params.output_prefix = str(output_dir / self.output_prefix_var.get())
 
+            # JSON folder configuration
+            json_folder = self.json_folder_var.get()
+            if json_folder == "json":
+                # Relative path - combine with output directory
+                params.json_folder = str(output_dir / "json")
+            else:
+                # Absolute path
+                params.json_folder = json_folder
+
             # Log output location
             self._log_progress(f"Output directory: {self.output_dir}")
             self._log_progress(f"File prefix: {self.output_prefix_var.get()}")
+            self._log_progress(f"JSON folder: {params.json_folder}")
 
             # Create pipeline with progress callback
             pipeline = IntegratedAnalysisPipeline(params, progress_callback=self._log_progress)
@@ -2209,6 +2257,29 @@ class IntegratedAnalysisGUI:
             self.progress_text.insert(tk.END, f"\nError opening results viewer: {str(e)}\n")
             self.progress_text.see(tk.END)
 
+        # Also open Fit Viewer
+        try:
+            # Determine JSON folder path
+            json_folder = self.json_folder_var.get()
+            if json_folder == "json":
+                json_folder_path = os.path.join(self.output_dir, "json")
+            else:
+                json_folder_path = json_folder
+
+            if os.path.exists(json_folder_path):
+                self.progress_text.insert(tk.END, f"\nOpening T1/T2 fit viewer...\n")
+                self.progress_text.see(tk.END)
+
+                from visualization.fit_viewer import FitViewer
+
+                fit_viewer = FitViewer(
+                    parent=self.root,
+                    json_folder=json_folder_path
+                )
+        except Exception as e:
+            self.progress_text.insert(tk.END, f"\nError opening fit viewer: {str(e)}\n")
+            self.progress_text.see(tk.END)
+
     def open_results_viewer(self):
         """Open the Results Viewer (always available)"""
         try:
@@ -2241,6 +2312,30 @@ class IntegratedAnalysisGUI:
 
         except Exception as e:
             messagebox.showerror("Error", f"Error opening results viewer:\n{str(e)}")
+
+    def open_fit_viewer(self):
+        """Open the T1/T2 Fit Viewer (always available)"""
+        try:
+            # Determine JSON folder path
+            json_folder = self.json_folder_var.get()
+            if json_folder == "json":
+                # Relative path - combine with output directory
+                json_folder_path = os.path.join(self.output_dir, "json")
+            else:
+                # Absolute path
+                json_folder_path = json_folder
+
+            # Import FitViewer
+            from visualization.fit_viewer import FitViewer
+
+            # Open viewer
+            viewer = FitViewer(
+                parent=self.root,
+                json_folder=json_folder_path if os.path.exists(json_folder_path) else None
+            )
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Error opening fit viewer:\n{str(e)}")
 
     def reset_form(self):
         """Reset all form fields"""

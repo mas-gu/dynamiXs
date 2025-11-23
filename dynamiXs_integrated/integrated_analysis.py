@@ -98,6 +98,7 @@ class IntegratedAnalysisParameters:
         # Output
         self.output_prefix = 'integrated_analysis'
         self.save_intermediate_files = True
+        self.json_folder = None  # Folder for JSON fit data (for visualization)
 
 
 class IntegratedAnalysisPipeline:
@@ -215,7 +216,10 @@ class IntegratedAnalysisPipeline:
             initial_amplitude=self.params.t1_initial_amplitude,
             initial_t1=self.params.t1_initial_time,
             n_bootstrap=self.params.t1_bootstrap_iterations,
-            output_prefix=f"{self.params.output_prefix}_{field_label}_T1"
+            output_prefix=f"{self.params.output_prefix}_{field_label}_T1",
+            json_folder=self.params.json_folder,
+            field_name=field_label,
+            field_freq=field_freq
         )
         self.log_progress(f"  │  ✓ {len(t1_params)} residues fitted")
 
@@ -226,7 +230,10 @@ class IntegratedAnalysisPipeline:
             initial_amplitude=self.params.t2_initial_amplitude,
             initial_t2=self.params.t2_initial_time,
             n_bootstrap=self.params.t2_bootstrap_iterations,
-            output_prefix=f"{self.params.output_prefix}_{field_label}_T2"
+            output_prefix=f"{self.params.output_prefix}_{field_label}_T2",
+            json_folder=self.params.json_folder,
+            field_name=field_label,
+            field_freq=field_freq
         )
         self.log_progress(f"  │  ✓ {len(t2_params)} residues fitted")
 
